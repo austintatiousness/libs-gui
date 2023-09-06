@@ -1907,6 +1907,37 @@ convert_rect_using_matrices(NSRect aRect, NSAffineTransform *matrix1,
     }
 }
 
+- (NSRect) convertRectToWindowPixels: (NSRect)aRect
+{
+   if (![self window]) {
+      return aRect;
+   }
+   NSAffineTransform *matrix1, *matrix2;
+   matrix1 = [self _matrixToWindow];
+   matrix2 = [NSAffineTransform transform];
+   NSRect newRect = convert_rect_using_matrices(aRect, matrix1, matrix2);
+   CGFloat scale = [[self window] userSpaceScaleFactor];
+   newRect.origin.x = newRect.origin.x * scale;
+   newRect.origin.y = newRect.origin.y * scale;
+   newRect.size.width = newRect.size.width * scale;
+   newRect.size.height = newRect.size.height * scale;
+   return newRect;
+}
+//FIXME: This isn't well written, and should probbably be an ivar that is recreated when _rebuildCoordinates is called.
+- (NSAffineTransform*) _baseMatrixForDrawing {
+   CGFloat scale = [[[self window] screen] userSpaceScaleFactor];
+   NSAffineTransform* windowBase = [[self _matrixToWindow] copy];
+
+   //Crate new base
+   NSAffineTransform* base = [NSAffineTransform transform];
+   [base scaleBy: scale];
+	
+   //combine
+   [windowBase appendTransform: base];
+   RETAIN(windowBase);
+   return windowBase;
+}
+
 - (NSPoint) convertPointFromBase: (NSPoint)aPoint
 {
   return [self convertPoint: aPoint fromView: nil];
@@ -2182,7 +2213,7 @@ static void autoresize(CGFloat oldContainerSize,
           // This only works, when the context comes from the window
           DPSsetgstate(ctxt, window_gstate);
           DPSgsave(ctxt);
-          [[self _matrixToWindow] concat];
+          [[self _baseMatrixForDrawing] concat];
           
           /* Allow subclases to make other modifications */
           [self setUpGState];
