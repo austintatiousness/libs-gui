@@ -354,7 +354,7 @@ static NSMutableArray *screenArray = nil;
  */
 - (NSRect) visibleFrame
 {
-  NSRect visFrame = _frame;
+  NSRect visFrame = [self frame];;
   float menuHeight;
 
   switch (NSInterfaceStyleForKey(@"NSMenuInterfaceStyle", nil))
