@@ -95,15 +95,6 @@ static inline NSRect RectWithSizeScaledByFactor(NSRect aRect, CGFloat factor)
   aRect.size.height -= t + b;
   aRect.origin.x += l;
   aRect.origin.y += b;
- 
-  if (0 == (aStyle & NSUnscaledWindowMask))
-    {
-      // FIXME: This method should probably take a screen parameter
-      // rather than assuming the mainScreen
-      
-      CGFloat factor = [[NSScreen mainScreen] userSpaceScaleFactor]; 
-      aRect = RectWithSizeScaledByFactor(aRect, 1/factor);
-    }
  return aRect;
 }
 
@@ -113,15 +104,6 @@ static inline NSRect RectWithSizeScaledByFactor(NSRect aRect, CGFloat factor)
   float t = 0.0, b = 0.0, l = 0.0, r = 0.0;
 
   [self offsets: &l : &r : &t : &b forStyleMask: aStyle];
-  if (0 == (aStyle & NSUnscaledWindowMask))
-    {
-      // FIXME: This method should probably take a screen parameter
-      // rather than assuming the mainScreen
-
-      CGFloat factor = [[NSScreen mainScreen] userSpaceScaleFactor];
-      aRect = RectWithSizeScaledByFactor(aRect, factor);
-    }
-  
   aRect.size.width += l + r;
   aRect.size.height += t + b;
   aRect.origin.x -= l;
