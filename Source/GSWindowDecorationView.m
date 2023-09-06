@@ -383,11 +383,14 @@ static inline NSRect RectWithSizeScaledByFactor(NSRect aRect, CGFloat factor)
   // Wouldn't it be better to rely on the autoresize mechanism?
   _autoresizes_subviews = NO;
   [super setFrame: frameRect];
-
+  CGFloat scale = [[self window] userSpaceScaleFactor];
+  frameRect.size.width = frameRect.size.width / scale;
+  frameRect.size.height = frameRect.size.height / scale;
   contentRect = [object_getClass(self)
                     contentRectForFrameRect: frameRect
                     styleMask: [window styleMask]];
-
+	
+	
   // Safety Check.
   [cv setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
   [cv resizeWithOldSuperviewSize: oldSize];
