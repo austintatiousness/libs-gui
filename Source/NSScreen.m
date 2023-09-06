@@ -250,6 +250,12 @@ static NSMutableArray *screenArray = nil;
  */
 - (NSRect) frame
 {
+  CGFloat scale = [self userSpaceScaleFactor];
+  return NSMakeRect(_frame.origin.x / scale, _frame.origin.y / scale, _frame.size.width / scale, _frame.size.height / scale);
+}
+
+- (NSRect) nativeFrame
+{
   return _frame;
 }
 
