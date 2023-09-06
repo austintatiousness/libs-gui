@@ -234,9 +234,11 @@
 
 - (NSPoint) mouseLocationOnScreenOutsideOfEventStream
 {
+  CGFloat scale = [window userSpaceScaleFactor];
   int screen = [[window screen] screenNumber];
-  return [GSServerForWindow(window) mouseLocationOnScreen: screen
+  NSPoint point = [GSServerForWindow(window) mouseLocationOnScreen: screen
 						   window: NULL];
+	return NSMakePoint(point.x / scale, point.y / scale);
 }
 
 - (void) moveWindowStartingWithEvent: (NSEvent *)event
@@ -409,7 +411,7 @@ calc_new_frame(NSRect frame, NSPoint point, NSPoint firstPoint,
 - (void) mouseDown: (NSEvent *)event
 {
   NSPoint p = [self convertPoint: [event locationInWindow] fromView: nil];
-
+  
   if ([self pointInContentRect:p])
     {
       [super mouseDown: event];
