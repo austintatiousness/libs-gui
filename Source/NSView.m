@@ -319,7 +319,9 @@ GSSetDragTypes(NSView* obj, NSArray *types)
 	    {
 	      superFlipped = NO;
 	      pMatrix = [NSAffineTransform transform];
-           }
+          CGFloat scale = [[[self window] screen] userSpaceScaleFactor];
+          [pMatrix scaleBy: 1/scale];
+	    }
 	      
 	  ts = [pMatrix transformStruct];
 
