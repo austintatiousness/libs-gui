@@ -3164,11 +3164,10 @@ in the main thread.
       destPoint.y += aRect.size.height;
     }
 
-  //NSLog(@"destPoint %@ in %@", NSStringFromPoint(destPoint), NSStringFromRect(_bounds));
-
+  NSRect normalizedRect = [self convertRectToWindowPixels: aRect];
   [self lockFocus];
   //NSCopyBits(0, aRect, destPoint);
-  NSCopyBits([[self window] gState], [self convertRect: aRect toView: nil], destPoint);
+  NSCopyBits([[self window] gState], normalizedRect, destPoint);
   [self unlockFocus];
 }
 
