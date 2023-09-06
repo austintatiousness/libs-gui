@@ -578,7 +578,7 @@ static NSSize scaledIconSizeForSize(NSSize imageSize)
                 if (NSEqualPoints(location, lastLocation) == NO)
                   {
                     NSPoint origin = [_window frame].origin;
-
+                    
                     origin.x += (location.x - lastLocation.x);
                     origin.y += (location.y - lastLocation.y);
                     [_window setFrameOrigin: origin];
@@ -971,10 +971,12 @@ many times.
   // Set window in new _gstate
   _gstate = GSDefineGState(_context);
 
-  {
+  { //Why are these brackets here?
     NSRect frame = _frame;
+	CGFloat scale = [self userSpaceScaleFactor];
+	
     frame.origin = NSZeroPoint;
-    [_wv setFrame: frame];
+    [_wv setFrame: NSMakeRect(0, 0, frame.size.width * scale, frame.size.height * scale)];
     [_wv setWindowNumber: _windowNum];
     [_wv setDocumentEdited: _f.is_edited];
     [_wv setNeedsDisplay: YES];
@@ -1000,10 +1002,13 @@ many times.
       [srv removeDragTypes: nil fromWindow: self];
     }
 
-  _windowNum = [srv window: _frame
+  CGFloat scale = [_screen userSpaceScaleFactor];
+  NSRect scaledRect = NSMakeRect(_frame.origin.x * scale, _frame.origin.y * scale, _frame.size.width * scale, _frame.size.height * scale);
+  _windowNum = [srv window: scaledRect
                     : _backingType
                     : _styleMask
                     : [_screen screenNumber]];
+
   if (_windowNum == 0)
     {
       [NSException raise: @"No Window" format: @"Failed to obtain window from the back end"];
@@ -1122,6 +1127,7 @@ many times.
   _minimumSize = NSMakeSize(_frame.size.width - contentRect.size.width + 1,
                             _frame.size.height - contentRect.size.height + 1);
   _maximumSize = NSMakeSize (10e4, 10e4);
+
   [self setFrame: _frame display: NO];
 
   [self setNextResponder: NSApp];
@@ -1136,6 +1142,9 @@ many times.
     {
       windowDecorator = [GSWindowDecorationView windowDecorator];
     }
+
+	CGFloat scale =  [self userSpaceScaleFactor];
+	NSRect scaledFrame = NSMakeRect(cframe.origin.x * scale, cframe.origin.y * scale, cframe.size.width * scale, cframe.size.height * scale);
 
   _wv = [windowDecorator newWindowDecorationViewWithFrame: cframe
                                                    window: self];
@@ -1327,6 +1336,7 @@ many times.
 /** Sets the window's title to the string <var>aString</var>. */
 - (void) setTitle: (NSString*)aString
 {
+
   if ([_windowTitle isEqual: aString] == NO)
     {
       ASSIGNCOPY(_windowTitle, aString);
@@ -1903,12 +1913,13 @@ titleWithRepresentedFilename(NSString *representedFilename)
          don't constrain if we are merely unhiding the window or if it's
          already visible and is just being reordered. */
       if ((_styleMask & NSTitledWindowMask)
-          && [NSApp isHidden] == NO
-          && _f.visible == NO)
-        {
-          NSRect nframe = [self constrainFrameRect: _frame
-                                toScreen: [self screen]];
-          [self setFrame: nframe display: NO];
+         && [NSApp isHidden] == NO
+         && _f.visible == NO)
+          {
+            NSRect nframe = [self constrainFrameRect: _frame
+                                  toScreen: [self screen]];
+              [self _applyFrame: nframe];
+              [self setFrame: nframe display: YES];
         }
       // create deferred window
       if (_windowNum == 0)
@@ -2315,7 +2326,13 @@ titleWithRepresentedFilename(NSString *representedFilename)
 
 - (NSRect) frame
 {
-  return _frame;
+	return _frame;
+}
+
+- (NSRect) nativeFrame
+{
+  CGFloat scale = [self userSpaceScaleFactor];
+  return NSMakeRect(_frame.origin.x * scale, _frame.origin.y * scale, _frame.size.width * scale, _frame.size.height * scale);
 }
 
 - (NSSize) minSize
@@ -2337,19 +2354,41 @@ titleWithRepresentedFilename(NSString *representedFilename)
   r.origin = _frame.origin;
   [self setFrame: r display: YES];
 }
-
+//CLOW- Takes a value in NSRect in points (not pixels) and places the window.
 - (void) _applyFrame: (NSRect )frameRect
 {
-  if (_windowNum)
+	
+  CGFloat scale =  [self userSpaceScaleFactor];
+  NSRect scaledFrame = NSMakeRect(frameRect.origin.x * scale, frameRect.origin.y * scale, frameRect.size.width * scale, frameRect.size.height * scale);
+	if (_windowNum)
     {
-      [GSServerForWindow(self) placewindow: frameRect : _windowNum];
+      [GSServerForWindow(self) placewindow: scaledFrame : _windowNum];
+      _frame = frameRect;
     }
   else
     {
       _frame = frameRect;
-      frameRect.origin = NSZeroPoint;
-      [_wv setFrame: frameRect];
+		scaledFrame.origin = NSZeroPoint;
+      [_wv setFrame: scaledFrame];
+	  [_wv setNeedsDisplay: YES];
     }
+}
+
+- (void) _applyFrameInPixels: (NSRect) frameInPixels
+{
+	CGFloat scale =  [self userSpaceScaleFactor];
+	NSRect newFrame = NSMakeRect(frameInPixels.origin.x, frameInPixels.origin.y, frameInPixels.size.width, frameInPixels.size.height);
+	if (_windowNum)
+	  {
+		[GSServerForWindow(self) placewindow: frameInPixels : _windowNum];
+		_frame = newFrame;
+	  }
+	else
+	  {
+		_frame = newFrame;
+		newFrame.origin = NSZeroPoint;
+		[_wv setFrame: newFrame];
+	  }
 }
 
 - (void) setFrame: (NSRect)frameRect display: (BOOL)flag
@@ -2394,12 +2433,14 @@ titleWithRepresentedFilename(NSString *representedFilename)
    * Now we can tell the graphics context to do the actual resizing.
    * We will recieve an event to tell us when the resize is done.
    */
+	
   [self _applyFrame: frameRect];
 
   if (flag)
     {
       [self display];
     }
+	
 }
 
 - (void) setFrameOrigin: (NSPoint)aPoint
@@ -2697,6 +2738,11 @@ titleWithRepresentedFilename(NSString *representedFilename)
       _rectNeedingFlush = NSUnionRect(_rectNeedingFlush,
         [[_rectsBeingDrawn objectAtIndex: i] rectValue]);
     }
+	CGFloat scale = [self userSpaceScaleFactor];
+    _rectNeedingFlush.origin.x = _rectNeedingFlush.origin.x * scale;
+    _rectNeedingFlush.origin.y = _rectNeedingFlush.origin.y * scale;
+    _rectNeedingFlush.size.width = _rectNeedingFlush.size.width * scale;
+    _rectNeedingFlush.size.height = _rectNeedingFlush.size.height * scale;
 
   if (_windowNum > 0)
     {
@@ -3099,7 +3145,6 @@ checkCursorRectanglesEntered(NSView *theView,  NSEvent *theEvent, NSPoint lastPo
                     trackingNumber: (int)YES
                     userData: (void*)r];
                   [NSApp postEvent: e atStart: YES];
-                  //NSLog(@"Add enter event %@ for view %@ rect %@", e, theView, NSStringFromRect(r->rectangle));
                 }
             }
         }
@@ -3156,7 +3201,7 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
                     userData: (void*)r];
                   [NSApp postEvent: e atStart: YES];
                   //[NSApp postEvent: e atStart: NO];
-                  //NSLog(@"Add exit event %@ for view %@ rect %@", e, theView, NSStringFromRect(r->rectangle));
+
                 }
             }
         }
@@ -3840,15 +3885,18 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
 
 /* Return mouse location in reciever's base coord system, ignores event
  * loop status */
+//FIXEDME: CLOW-
 - (NSPoint) mouseLocationOutsideOfEventStream
 {
   int screen;
   NSPoint p;
-
+  CGFloat scale = [self userSpaceScaleFactor];
   screen = [_screen screenNumber];
   p = [GSServerForWindow(self) mouseLocationOnScreen: screen window: NULL];
   if (p.x != -1)
     {
+      p.x = p.x / scale;
+      p.y = p.y / scale;
       p = [self convertScreenToBase: p];
     }
   return p;
@@ -4369,6 +4417,7 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
 
                 _frame.origin.x = (CGFloat)[theEvent data1];
                 _frame.origin.y = (CGFloat)[theEvent data2];
+
                 NSDebugLLog(@"Moving", @"Move event: %d %@",
                             (int)_windowNum, NSStringFromPoint(_frame.origin));
                 if (_autosaveName != nil)
@@ -4388,7 +4437,7 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
             case GSAppKitWindowResized:
               {
                 NSRect newFrame;
-
+				CGFloat scale =  [self userSpaceScaleFactor];
                 newFrame.size.width = [theEvent data1];
                 newFrame.size.height = [theEvent data2];
                 /* Resize events always move the frame origin. The new origin
@@ -4398,9 +4447,10 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
                 /* FIXME: For a user resize we should call windowWillResize:toSize:
                    on the delegate.
                  */
+
                 _frame = newFrame;
                 newFrame.origin = NSZeroPoint;
-                [_wv setFrame: newFrame];
+                [_wv setFrame: NSMakeRect(0, 0, newFrame.size.width * scale, newFrame.size.height * scale)];
                 [_wv setNeedsDisplay: YES];
 
                 if (_autosaveName != nil)
@@ -4416,7 +4466,7 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
 
             case GSAppKitRegionExposed:
               {
-                NSRect region;
+                NSRect region; //CLOW-? Where is this set to anything?
 
                 region.size.width = [theEvent data1];
                 region.size.height = [theEvent data2];
