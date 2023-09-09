@@ -2473,7 +2473,8 @@ titleWithRepresentedFilename(NSString *representedFilename)
   _minimumSize = aSize;
   if (_windowNum > 0)
     {
-      [GSServerForWindow(self) setminsize: aSize : _windowNum];
+      CGFloat scale = [self userSpaceScaleFactor];
+      [GSServerForWindow(self) setminsize: NSMakeSize(aSize.width * scale, aSize.height * scale) : _windowNum];
     }
 }
 
@@ -2493,7 +2494,8 @@ titleWithRepresentedFilename(NSString *representedFilename)
   _maximumSize = aSize;
   if (_windowNum > 0)
     {
-      [GSServerForWindow(self) setmaxsize: aSize : _windowNum];
+      CGFloat scale = [self userSpaceScaleFactor];
+      [GSServerForWindow(self) setmaxsize: NSMakeSize(aSize.width * scale, aSize.height * scale) : _windowNum];
     }
 }
 
