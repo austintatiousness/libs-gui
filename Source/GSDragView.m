@@ -402,14 +402,19 @@ static	GSDragView *sharedDragView = nil;
   newPosition = mPoint;
   offset.width = mPoint.x - iPoint.x;
   offset.height = mPoint.y - iPoint.y;
-
   [_window setFrame:
     NSMakeRect (iPoint.x, iPoint.y, imageSize.width, imageSize.height)
             display: NO];
 
-  // Only display the image
-  [GSServerForWindow(_window) restrictWindow: [_window windowNumber]
-                                     toImage: [dragCell image]];
+  /*FIXME: (CLOW) Disabled this due to it not working properly on scale != 1,
+  This does not matter on windowing systems that support clear window backgrounds
+  On WindowMaker, disabling this causes the background of the drag window
+  to be rendered as a black background. THis is unfortunate. Once
+  restrictWindow:toImage is fiex, this can be re-enabled.
+  */
+  //Only display the image
+  //[GSServerForWindow(_window) restrictWindow: [_window windowNumber]
+  //                                   toImage: [dragCell image]];
 
   [_window orderFront: nil];
 }
