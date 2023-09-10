@@ -539,8 +539,8 @@ static	GSDragView *sharedDragView = nil;
   NSGraphicsContext *context = GSCurrentContext();
   // FIXME: Should store this once
   NSInteger dragWindowRef = (NSInteger)(intptr_t)[GSServerForWindow(_window) windowDevice: [_window windowNumber]];
-
-  eventLocation = [dWindow convertScreenToBase: eventLocation];
+  CGFloat scale = 1; if (dWindow != nil) {scale = [dWindow userSpaceScaleFactor];};
+  eventLocation = [dWindow convertScreenToBase: NSMakePoint(eventLocation.x / scale, eventLocation.y / scale)];
   e = [NSEvent otherEventWithType: NSAppKitDefined
 	                 location: eventLocation
 	            modifierFlags: 0
@@ -814,13 +814,13 @@ static	GSDragView *sharedDragView = nil;
       break;
     case NSPeriodic:
       newPosition = [NSEvent mouseLocation];
-      if (newPosition.x != dragPosition.x || newPosition.y != dragPosition.y) 
+      if (newPosition.x != dragPosition.x || newPosition.y != dragPosition.y)
         {
           [self _updateAndMoveImageToCorrectPosition];
         }
       else if (destWindow)
         {
-	  [self _sendLocalEvent: GSAppKitDraggingUpdate
+         [self _sendLocalEvent: GSAppKitDraggingUpdate
                          action: dragMask & operationMask
                        position: newPosition
                       timestamp: [theEvent timestamp]
@@ -869,8 +869,10 @@ static	GSDragView *sharedDragView = nil;
   destExternal = (mouseWindowRef != 0) && (destWindow == nil);
             
   if (destWindow != nil)
+	  
     {
-      dragPoint = [destWindow convertScreenToBase: dragPosition];
+      CGFloat scale = [destWindow userSpaceScaleFactor];
+      dragPoint = [destWindow convertScreenToBase: NSMakePoint(dragPosition.x / scale, dragPosition.y / scale)];
     }
             
   NSDebugLLog(@"NSDragging", @"mouse window %d (%@) at %@\n",
