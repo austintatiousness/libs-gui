@@ -579,7 +579,7 @@ static BOOL		restoreMouseMoved;
   NSString		*toolTipString;
   NSAttributedString	*toolTipText = nil;
   NSSize		textSize;
-  NSPoint		mouseLocation = [NSEvent mouseLocation]
+  NSPoint		mouseLocation = [NSEvent mouseLocation];
   NSRect		visible;
   NSRect		rect;
   NSMutableDictionary	*attributes;
