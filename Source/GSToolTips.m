@@ -403,11 +403,11 @@ static BOOL		restoreMouseMoved;
     {
       return;
     }
-
+  CGFloat scale = [window userSpaceScaleFactor];
   mouseLocation = [NSEvent mouseLocation];
-
-  origin = NSMakePoint(mouseLocation.x + offset.width,
-    mouseLocation.y + offset.height);
+  //FIXME: When mouseLocation is updated to be in points according to the screen that it is on, this should no longer convert.
+  origin = NSMakePoint((mouseLocation.x / scale) + offset.width,
+    (mouseLocation.y / scale) + offset.height);
 
   [window setFrameOrigin: origin];
 }
