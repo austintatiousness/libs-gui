@@ -238,7 +238,32 @@ static Class eventClass;
  */
 + (NSPoint) mouseLocation
 {
-  return [GSCurrentServer() mouselocation];
+	//FIXME: This should really firt figure out which screen the cursor is on
+	//FIXME: Then it should find the scale factor for that screen.
+	//FIXME: Then it should return the new point adjusted for that screen.
+	NSNumber *factor = [[NSUserDefaults standardUserDefaults]
+				 objectForKey: @"GSScaleFactor"];
+	CGFloat scale = 1;
+	if (factor != nil)
+	  {
+		scale [factor floatValue];
+	  }
+	else
+	  {
+		GSDisplayServer *srv = GSCurrentServer();
+		if (srv != nil)
+		{
+		  NSSize dpi = [GSCurrentServer() resolutionForScreen: 0];
+		  // average the width and height
+		  scale = (dpi.width + dpi.height) / 144.0;
+		}
+		else
+		{
+		  scale = 1.0;
+		}
+	  }
+  NSPoint loc = [GSCurrentServer() mouselocation]
+  return NSMakePoint(loc.x / scale, loc.y / scale);
 }
 
 + (NSEvent*) otherEventWithType: (NSEventType)type
